@@ -1,68 +1,39 @@
 import cv2
-import pyglet
-from pyglet.window import key
-
-# 1. Initialize Webcam
-camera = cv2.VideoCapture(0)
-
-if not camera.isOpened():
-    print("\n Cannot access webcam.")
-    exit()
-
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-
-success, test_frame = camera.read()
-if not success:
-    print("failed to send video data.")
-    exit()
-
-cam_height, cam_width, _ = test_frame.shape
-print(f"\n CAMERA LINKED!")
-print(f"True Hardware Resolution: {cam_width}x{cam_height}\n")
-
-window = pyglet.window.Window(width=cam_width, height=cam_height, caption="Filter Engine - Milestone 1")
-current_image = None
 
 
-def update_frame(dt):
-    global current_image
-    success, frame = camera.read()
+class MediaBridge:
+    def __init__(self, source_type="webcam", path=0):
+        self.source_type = source_type
+        self.static_image = None
 
-    if success:
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if source_type == "webcam" or source_type == "video":
+            self.cap = cv2.VideoCapture(path)
+            if not self.cap.isOpened():
+                raise RuntimeError(f"Source access failure for identifier: {path}")
+            success, test_frame = self.cap.read()
+            if not success:
+                raise RuntimeError("Empty stream package returned from driver.")
+            self.height, self.width = test_frame.shape[:2]
+        elif source_type == "photo":
+            self.static_image = cv2.imread(path)
+            if self.static_image is None:
+                raise RuntimeError(f"Disk read error at address: {path}")
+            self.height, self.width = self.static_image.shape[:2]
 
-        current_image = pyglet.image.ImageData(
-            cam_width,
-            cam_height,
-            'RGB',
-            frame.tobytes(),
-            pitch=-cam_width * 3
-        )
+    def get_frame(self):
+        if self.source_type == "photo":
+            return self.static_image.copy()
 
+        success, frame = self.cap.read()
+        if success:
+            return frame
+        elif self.source_type == "video":
+            # Rewind video clip in a recursive circle loop
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            _, frame = self.cap.read()
+            return frame
+        return None
 
-@window.event
-def on_draw():
-    window.clear()
-    if current_image:
-        current_image.blit(0, 0)
-
-
-@window.event
-def on_key_press(symbol, modifiers):
-    if symbol == key.ESCAPE:
-        print("Closing window cleanly...")
-        camera.release()
-        window.close()
-        pyglet.app.exit()
-
-
-@window.event
-def on_close():
-    camera.release()
-
-
-pyglet.clock.schedule_interval(update_frame, 1.0 / 60.0)
-
-if __name__ == "__main__":
-    pyglet.app.run()
+    def release(self):
+        if self.source_type in ["webcam", "video"] and hasattr(self, 'cap'):
+            self.cap.release()
