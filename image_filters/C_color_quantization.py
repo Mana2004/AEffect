@@ -70,9 +70,19 @@ def apply_pop_art(frame, dot_size=4):
     return final_art
 
 
-def apply_posterize(frame, levels=4):
-    step = 255.0 / (levels - 1)
+def apply_posterize(frame, levels=6, edge_strength=1.5):
 
-    quantized = np.round(frame / step) * step
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 100, 200)
 
-    return quantized.astype(np.uint8)
+    blurred = cv2.bilateralFilter(frame, d=7, sigmaColor=50, sigmaSpace=50)
+
+    levels_float = float(levels)
+
+    quantized = np.round(blurred / 255.0 * levels_float) / levels_float * 255.0
+
+    mask = (edges > 0)
+    final_art = quantized.astype(np.uint8)
+    final_art[mask] = frame[mask]
+
+    return cv2.medianBlur(final_art, 3)
