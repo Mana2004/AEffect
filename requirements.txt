@@ -1,2 +1,4 @@
 numpy
 pyglet
+Pillow
+tk
