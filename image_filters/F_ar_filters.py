@@ -51,6 +51,8 @@ def apply_ar_prop(frame, overlay, prop_type="glasses"):
             ow, oh, ox, oy = int(w * 0.55), int(h * 0.20), x + int(w * 0.22), y + int(h * 0.62)
         elif prop_type == "hat":
             ow, oh, ox, oy = int(w * 1.2), int(h * 0.6), x - int(w * 0.1), y - int(h * 0.45)
+        elif prop_type == "butterfly":
+            ow, oh, ox, oy = int(w * 0.25), int(h * 0.25), x + int(w * 0.06), y + int(h * 0.4)
         else:
             continue
 
